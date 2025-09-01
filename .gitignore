@@ -1,0 +1,44 @@
+# Build results
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Generated files
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+*.diff
+*.patch
+
+# Database files
+*.mdf
+*.ldf
+*.ndf
+*.sqlite
+*.db
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Others
+*.swp
+*.bak
+*.tmp
