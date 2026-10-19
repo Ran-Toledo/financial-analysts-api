@@ -16,14 +16,14 @@ namespace FinancialAnalystsAPI.Controllers
             _context = context;
         }
 
-        // GET: api/analysts
+        // GET: api/FinancialAnalysts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<FinancialAnalyst>>> GetAnalysts()
         {
             return await _context.FinancialAnalysts.ToListAsync();
         }
 
-        // GET: api/analysts/{id}
+        // GET: api/FinancialAnalysts/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<FinancialAnalyst>> GetAnalyst(int id)
         {
@@ -32,7 +32,7 @@ namespace FinancialAnalystsAPI.Controllers
             return analyst;
         }
 
-        // POST: api/analysts
+        // POST: api/FinancialAnalysts
         [HttpPost]
         public async Task<ActionResult<FinancialAnalyst>> AddAnalyst(FinancialAnalyst analyst)
         {
@@ -41,7 +41,7 @@ namespace FinancialAnalystsAPI.Controllers
             return CreatedAtAction(nameof(GetAnalyst), new { id = analyst.Id }, analyst);
         }
 
-        // PUT: api/analysts/{id}
+        // PUT: api/FinancialAnalysts/{id}
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAnalyst(int id, FinancialAnalyst updatedAnalyst)
         {
@@ -51,7 +51,7 @@ namespace FinancialAnalystsAPI.Controllers
             return NoContent();
         }
 
-        // DELETE: api/analysts/{id}
+        // DELETE: api/FinancialAnalysts/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAnalyst(int id)
         {

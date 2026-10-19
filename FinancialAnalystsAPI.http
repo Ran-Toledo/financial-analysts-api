@@ -1,6 +1,17 @@
 @FinancialAnalystsAPI_HostAddress = http://localhost:5076
 
-GET {{FinancialAnalystsAPI_HostAddress}}/weatherforecast/
+GET {{FinancialAnalystsAPI_HostAddress}}/api/FinancialAnalysts
 Accept: application/json
+
+###
+
+POST {{FinancialAnalystsAPI_HostAddress}}/api/FinancialAnalysts
+Content-Type: application/json
+
+{
+  "name": "Jane Doe",
+  "expertise": "Equities",
+  "rating": 4.5
+}
 
 ###

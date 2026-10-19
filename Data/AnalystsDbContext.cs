@@ -11,7 +11,7 @@ namespace FinancialAnalystsAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<FinancialAnalyst>().ToTable("FinancialAnalysts");
+            modelBuilder.Entity<FinancialAnalyst>().ToTable("Analysts");
         }
     }
 }
