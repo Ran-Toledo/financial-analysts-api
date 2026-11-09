@@ -18,7 +18,7 @@ public static class Projections
         f.Ratings.OrderByDescending(r => r.Date).Select(r => (DateOnly?)r.Date).FirstOrDefault());
 
     public static readonly Expression<Func<Analyst, AnalystDto>> Analyst = a =>
-        new AnalystDto(a.Id, a.Name, a.FirmId, a.Firm.Name, a.ManualRating, a.Ratings.Count);
+        new AnalystDto(a.Id, a.Name, a.FirmId, a.Firm.Name, a.Ratings.Count);
 
     public static readonly Expression<Func<Rating, RatingDto>> Rating = r => new RatingDto(
         r.Id, r.Date, r.Stock.Ticker, r.Stock.Name, r.Stock.Sector,

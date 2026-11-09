@@ -4,13 +4,14 @@ using FinancialAnalystsAPI.Data;
 using FinancialAnalystsAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using FinancialAnalystsAPI.Scoring;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinancialAnalystsAPI.Controllers;
 
 [Route("api/firms")]
 [OutputCache(PolicyName = CachePolicies.MarketData)]
-public class FirmsController(AnalystsDbContext db) : ApiControllerBase
+public class FirmsController(AnalystsDbContext db, ScoreQueries scores) : ScoredSubjectController(scores, ScoreSubject.Firm)
 {
     private static readonly SortOptions<Firm> Sorts = new SortOptions<Firm>("name", defaultDescending: false, f => f.Id)
         .Add("name", f => f.Name)
@@ -49,4 +50,6 @@ public class FirmsController(AnalystsDbContext db) : ApiControllerBase
         if (!RatingQueries.Sorts.TryApply(ratings, q, out var sorted)) return InvalidSort(RatingQueries.Sorts, q.Sort);
         return await sorted.Select(Projections.Rating).ToPagedAsync(q, ct);
     }
+
+    protected override Task<bool> ExistsAsync(int id, CancellationToken ct) => db.Firms.AnyAsync(x => x.Id == id, ct);
 }

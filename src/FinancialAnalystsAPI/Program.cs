@@ -8,6 +8,7 @@ using FinancialAnalystsAPI.Data;
 using FinancialAnalystsAPI.Ingestion;
 using FinancialAnalystsAPI.Models;
 using FinancialAnalystsAPI.Providers;
+using FinancialAnalystsAPI.Scoring;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -39,6 +40,15 @@ builder.Services.AddSingleton<IngestionCoordinator>();
 if (!isCommand) builder.Services.AddHostedService<IngestionWorker>();
 
 builder.Services.AddScoped<ConsensusService>();
+
+builder.Services.AddOptions<ScoringOptions>()
+    .BindConfiguration(ScoringOptions.Section)
+    .ValidateDataAnnotations()
+    .Validate(o => o.Horizons.All(h => h is >= 1 and <= 60), "Scoring:HorizonsMonths must be between 1 and 60.")
+    .Validate(o => o.IsHorizon(o.DefaultHorizonMonths), "Scoring:DefaultHorizonMonths must be one of Scoring:HorizonsMonths.")
+    .ValidateOnStart();
+builder.Services.AddScoped<ScoringService>();
+builder.Services.AddScoped<ScoreQueries>();
 
 // API keys: anonymous reads are allowed; admin endpoints need an Admin key.
 builder.Services.AddMemoryCache();

@@ -91,6 +91,45 @@ public sealed class ConsensusQuery
     public int LookbackDays { get; set; } = 90;
 }
 
+public sealed class LeaderboardQuery : PagedQuery
+{
+    /// <summary>Outcome horizon in months (one of Scoring:HorizonsMonths). Defaults to 12.</summary>
+    public int? Horizon { get; set; }
+
+    /// <summary>Score only calls on stocks in this sector.</summary>
+    [StringLength(100)]
+    public string? Sector { get; set; }
+
+    /// <summary>Analysts only: limit to one firm.</summary>
+    public int? FirmId { get; set; }
+
+    /// <summary>Minimum matured calls to be ranked. Defaults to Scoring:MinCallsToRank (10).</summary>
+    [Range(1, 10000)]
+    public int? MinCalls { get; set; }
+
+    /// <summary>Months of month-end score history per row, for sparklines. 0 to omit.</summary>
+    [Range(0, 36)]
+    public int TrendMonths { get; set; } = 12;
+}
+
+public sealed class ScoreCardQuery
+{
+    /// <summary>Horizon for the trend line. Defaults to 12.</summary>
+    public int? TrendHorizon { get; set; }
+
+    [Range(0, 60)]
+    public int TrendMonths { get; set; } = 24;
+}
+
+public sealed class OutcomeQuery : PagedQuery
+{
+    /// <summary>Defaults to 12.</summary>
+    public int? Horizon { get; set; }
+
+    /// <summary>Only right (true) or wrong (false) calls.</summary>
+    public bool? Hit { get; set; }
+}
+
 public sealed class ConsensusHistoryQuery
 {
     [Range(1, 60)]

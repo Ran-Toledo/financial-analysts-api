@@ -24,7 +24,6 @@ internal sealed class AnalystConfiguration : IEntityTypeConfiguration<Analyst>
         b.ToTable("Analysts");
         b.Property(a => a.Name).HasMaxLength(200);
         b.Property(a => a.NormalizedName).HasMaxLength(200);
-        b.Property(a => a.ManualRating).HasColumnName("Rating");
         b.HasOne(a => a.Firm).WithMany(f => f.Analysts).HasForeignKey(a => a.FirmId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(a => new { a.FirmId, a.NormalizedName }).IsUnique();
     }
@@ -73,6 +72,17 @@ internal sealed class PriceSnapshotConfiguration : IEntityTypeConfiguration<Pric
     {
         b.HasKey(p => new { p.StockId, p.Date });
         b.HasOne(p => p.Stock).WithMany(s => s.Prices).HasForeignKey(p => p.StockId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class CallOutcomeConfiguration : IEntityTypeConfiguration<CallOutcome>
+{
+    public void Configure(EntityTypeBuilder<CallOutcome> b)
+    {
+        b.HasKey(o => new { o.RatingId, o.HorizonMonths });
+        b.Property(o => o.Category).HasConversion<string>().HasMaxLength(10);
+        b.HasOne(o => o.Rating).WithMany().HasForeignKey(o => o.RatingId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(o => new { o.HorizonMonths, o.EndDate });
     }
 }
 

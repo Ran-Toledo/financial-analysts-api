@@ -88,6 +88,10 @@ Full reference with parameters: Swagger UI at `/swagger` (Development).
 | GET | `/api/analysts`, `/api/analysts/{id}`, `/api/analysts/{id}/ratings` | Analysts and their calls (empty on FMP's free tier) |
 | GET | `/api/firms`, `/api/firms/{id}`, `/api/firms/{id}/ratings` | Research firms and their calls |
 | GET | `/api/feed` | Upgrades, downgrades and initiations across tracked stocks, newest first. Filter `ticker`, `sector`, `firmId`, `analystId`, `from`, `to`, `action`; `includeAll=true` adds maintained calls |
+| GET | `/api/leaderboards/firms` | Firms ranked by score. `horizon` (3, 6, 12), `sector`, `minCalls`, `trendMonths`; sort `score`, `hitRate`, `avgExcessReturn`, `calls`, `name` |
+| GET | `/api/leaderboards/analysts` | The same for individual analysts, plus `firmId` (empty on FMP's free tier) |
+| GET | `/api/firms/{id}/scores`, `/api/analysts/{id}/scores` | Scorecard: stats and rank at every horizon, plus a month-end score trend |
+| GET | `/api/firms/{id}/outcomes`, `/api/analysts/{id}/outcomes` | Each matured call with its return, benchmark return and whether it was right. `horizon`, `hit` |
 | GET | `/api/admin/ingestion/runs`, `/runs/{id}` | Ingestion history (admin) |
 | POST | `/api/admin/ingestion/run?backfill=false` | Start an ingestion run (admin) |
 
@@ -96,6 +100,35 @@ Full reference with parameters: Swagger UI at `/swagger` (Development).
 - Errors are RFC 7807 `application/problem+json`. Invalid input returns 400 with per-field messages, including the allowed `sort` values.
 - Enums are strings: `action` is `Initiate`, `Upgrade`, `Downgrade`, `Maintain`, `Reiterate`, `TargetRaise` or `TargetLower`; `category` is `Buy`, `Hold` or `Sell`.
 - **Consensus:** each contributor's latest call within the window counts once. A contributor is an analyst, or the firm when the provider names no analyst. `score` is the mean of Buy = 1, Hold = 2, Sell = 3, and `rating` is Buy when the score is at most 1.5, Sell when it is at least 2.5, otherwise Hold. `targets` is null when no call in the window has a price target.
+
+## Scoring
+
+Scores are rebuilt from stored ratings and prices at the end of every ingestion run. To re-score without calling the provider (for example after changing a `Scoring` setting), run:
+
+```bash
+dotnet run --project src/FinancialAnalystsAPI -- score
+```
+
+**Which ratings count as calls.** For each contributor and stock, in date order, a rating counts when it:
+- is the first one seen,
+- changes Buy/Hold/Sell,
+- changes the price target, or
+- reaffirms the opinion at least `Scoring:ReaffirmAfterDays` (90) after the last counted call.
+
+A contributor is an analyst, or the firm when the provider names no analyst. Frequent reiterations in between are ignored, so they can't pad a record.
+
+**How a call is judged**, after each horizon in `Scoring:HorizonsMonths` (3, 6 and 12 months):
+- *Return* uses the adjusted close on the call date and at the horizon end. *Excess return* is that minus the benchmark's (`SPY`) return over the same days.
+- **Buy** is right if the excess return is positive, and **Sell** if it's negative.
+- **Hold** is right if the stock lands within the Hold band of the benchmark. By default the band adapts per horizon: it's the median absolute excess return of all calls at that horizon (about ±10%, ±14% and ±21% on current data). That way a Hold is right about as often as a random Buy or Sell would be. Set `Scoring:HoldBandPct` for a fixed band instead.
+- A call is scored only once its horizon has passed and prices exist for it. Later calls are pending.
+- Target accuracy (whether the price reached the target, and how far it ended from it) is computed when a call has a target. FMP's free tier has none.
+
+**The score (0–100)** is half *hit rate* and half *directional excess return*. Directional excess return is the excess return in the direction of the call, for Buys and Sells only, where ±`Scoring:ReturnSpan` (20%) spans the scale. Both halves are shrunk toward the average of all contributors: a contributor's numbers are blended as if they had `Scoring:ShrinkageCalls` (10) extra average calls, so a handful of lucky calls can't top the board. Only contributors with at least `Scoring:MinCallsToRank` (10) matured calls are ranked.
+
+**Read with care:**
+- *Survivorship bias.* The default universe is today's large caps. Stocks that became large caps went up, so Buy calls on them look better than they would on a universe chosen in advance.
+- *Firm level.* With FMP's free tier, scores are per firm, and analyst leaderboards stay empty.
 
 ## API keys and limits
 

@@ -29,9 +29,9 @@ Goal: track real Wall Street analysts and score how accurate their calls turn ou
 - [x] API-key authentication
 
 ## Phase 3: Scoring
-- [ ] Accuracy engine: compare price targets with the actual price at 3, 6, and 12 months
-- [ ] Per-analyst hit rate and average return; replace the manual `Rating` with the computed score
-- [ ] Leaderboards: overall, by sector, and by firm
+- [x] Accuracy engine: compare calls with the actual price (and the SPY benchmark) at 3, 6, and 12 months. Target accuracy is computed too, but stays empty until a provider supplies targets
+- [x] Per-analyst (and per-firm) hit rate and average return; replace the manual `Rating` with the computed score
+- [x] Leaderboards: overall, by sector, and by firm (firm-level on FMP's free tier)
 
 ## Phase 4: Dashboard (React + Vite or Blazor)
 - [ ] Leaderboard page: sortable analyst table with scores and trend sparklines

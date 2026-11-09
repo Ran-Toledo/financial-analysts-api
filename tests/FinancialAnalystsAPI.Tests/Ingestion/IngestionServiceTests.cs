@@ -2,6 +2,7 @@ using FinancialAnalystsAPI.Ingestion;
 using FinancialAnalystsAPI.Models;
 using FinancialAnalystsAPI.Providers;
 using FinancialAnalystsAPI.Providers.Fake;
+using FinancialAnalystsAPI.Scoring;
 using FinancialAnalystsAPI.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,8 +22,9 @@ public sealed class IngestionServiceTests : IDisposable
     private Task<IngestionRun> RunAsync(IAnalystDataProvider provider, string[] tickers, bool backfill = false, int years = 2)
     {
         var db = _testDb.CreateContext();
-        var service = new IngestionService(db, provider,
-            Options.Create(new TrackingOptions { Tickers = tickers, BenchmarkTicker = "SPY" }),
+        var tracking = Options.Create(new TrackingOptions { Tickers = tickers, BenchmarkTicker = "SPY" });
+        var scoring = new ScoringService(db, Options.Create(new ScoringOptions()), tracking, _clock, NullLogger<ScoringService>.Instance);
+        var service = new IngestionService(db, provider, scoring, tracking,
             Options.Create(new IngestionOptions { BackfillYears = years }),
             _clock, NullLogger<IngestionService>.Instance);
         return service.RunAsync(backfill, CancellationToken.None);
@@ -49,6 +51,7 @@ public sealed class IngestionServiceTests : IDisposable
         Assert.Equal(first.RatingsAdded, await db.Ratings.CountAsync());
         Assert.Equal(3, await db.IngestionRuns.CountAsync(r => r.Status == IngestionStatus.Succeeded));
         Assert.True((await db.Stocks.SingleAsync(s => s.Ticker == "SPY")).IsBenchmark);
+        Assert.True(await db.CallOutcomes.AnyAsync()); // each run re-scores
     }
 
     [Fact]

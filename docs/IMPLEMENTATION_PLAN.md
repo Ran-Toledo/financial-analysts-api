@@ -190,6 +190,13 @@ These should be agreed before writing code, because they determine every number 
 
 ---
 
+> **As built (November 2026):** FMP's free tier has no analyst names or targets, so Phase 3 shipped scoring **firms** on direction (analyst and target metrics switch on when that data arrives). Changes from the plan above:
+> - Reaffirmations count as calls when at least 90 days have passed since the last counted call. Without them, too few firms had enough matured calls to rank.
+> - The Hold band is adaptive by default (the median absolute excess return per horizon). A fixed ±5% made Holds right only 10–25% of the time, because single stocks rarely stay that close to the index for a year.
+> - Aggregates are computed per request from stored `CallOutcome` rows (a few thousand) instead of `AnalystScore`/`FirmScore`/snapshot tables, so they never go stale.
+
+---
+
 ## Phase 4: Dashboard
 
 ### 4.1 Stack

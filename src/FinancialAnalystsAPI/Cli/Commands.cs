@@ -1,6 +1,7 @@
 using FinancialAnalystsAPI.Auth;
 using FinancialAnalystsAPI.Ingestion;
 using FinancialAnalystsAPI.Models;
+using FinancialAnalystsAPI.Scoring;
 using Microsoft.Extensions.Options;
 
 namespace FinancialAnalystsAPI.Cli;
@@ -9,6 +10,7 @@ namespace FinancialAnalystsAPI.Cli;
 /// One-shot commands that run instead of the web server:
 /// <code>
 /// ingest [--backfill]
+/// score
 /// apikey create &lt;name&gt; [--admin]
 /// apikey list
 /// apikey revoke &lt;name&gt;
@@ -27,7 +29,7 @@ internal sealed class Commands
         var tokens = args.Where(a => !(a.StartsWith("--") && a.Contains('='))).ToArray();
         hostArgs = args.Except(tokens).ToArray();
 
-        if (tokens.FirstOrDefault() is "ingest" or "apikey")
+        if (tokens.FirstOrDefault() is "ingest" or "score" or "apikey")
         {
             commands = new Commands(tokens);
             return true;
@@ -63,6 +65,17 @@ internal sealed class Commands
                                   $"+{run.RatingsAdded} ratings, {run.RatingsUpdated} ratings updated.");
                 if (run.Error is not null) Console.Error.WriteLine(run.Error);
                 return run.Status == IngestionStatus.Failed ? 1 : 0;
+            }
+
+            case ["score"]:
+            {
+                // Re-score stored data without calling the provider (ingest also does this at the end of each run).
+                var summary = await sp.GetRequiredService<ScoringService>().RecomputeAsync(CancellationToken.None);
+                Console.WriteLine($"Scored {summary.Calls} calls: {summary.Outcomes} matured outcomes, " +
+                                  $"{summary.Pending} call-horizons not yet matured. " +
+                                  $"Hold bands: {string.Join(", ", summary.HoldBandsPct.Select(b => $"{b.Key}m ±{b.Value}%"))}." +
+                                  (summary.HasBenchmark ? "" : " No benchmark prices, so excess returns equal raw returns."));
+                return 0;
             }
 
             case ["apikey", "create", var name, .. var flags] when flags.All(f => f == "--admin"):
@@ -105,6 +118,7 @@ internal sealed class Commands
                 Console.Error.WriteLine("""
                     Usage:
                       ingest [--backfill]
+                      score
                       apikey create <name> [--admin]
                       apikey list
                       apikey revoke <name>

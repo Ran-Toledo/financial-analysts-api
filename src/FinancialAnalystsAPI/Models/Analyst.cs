@@ -12,8 +12,5 @@ public class Analyst
     public int FirmId { get; set; }
     public Firm Firm { get; set; } = null!;
 
-    /// <summary>Hand-entered rating from the original CRUD API. Replaced by a computed score in Phase 3.</summary>
-    public double? ManualRating { get; set; }
-
     public List<Rating> Ratings { get; set; } = [];
 }

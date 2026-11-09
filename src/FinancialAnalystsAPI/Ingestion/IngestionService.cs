@@ -1,6 +1,7 @@
 using FinancialAnalystsAPI.Data;
 using FinancialAnalystsAPI.Models;
 using FinancialAnalystsAPI.Providers;
+using FinancialAnalystsAPI.Scoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -14,6 +15,7 @@ namespace FinancialAnalystsAPI.Ingestion;
 public sealed class IngestionService(
     AnalystsDbContext db,
     IAnalystDataProvider provider,
+    ScoringService scoring,
     IOptions<TrackingOptions> tracking,
     IOptions<IngestionOptions> options,
     TimeProvider time,
@@ -77,6 +79,21 @@ public sealed class IngestionService(
                     // One bad ticker must not stop the others; discard its half-applied changes.
                     failures.Add($"{ticker}: {ex.Message}");
                     logger.LogError(ex, "Ingestion failed for {Ticker}", ticker);
+                    db.ChangeTracker.Clear();
+                }
+            }
+
+            // Re-score with whatever is now stored, so newly matured calls show up straight away.
+            if (run.StocksProcessed > 0)
+            {
+                try
+                {
+                    await scoring.RecomputeAsync(ct);
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    failures.Add($"Scoring: {ex.Message}");
+                    logger.LogError(ex, "Scoring failed after ingestion run {RunId}", run.Id);
                     db.ChangeTracker.Clear();
                 }
             }

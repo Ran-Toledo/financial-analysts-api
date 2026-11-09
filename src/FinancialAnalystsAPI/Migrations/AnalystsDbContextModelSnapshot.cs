@@ -26,10 +26,6 @@ namespace FinancialAnalystsAPI.Migrations
                     b.Property<int>("FirmId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<double?>("ManualRating")
-                        .HasColumnType("REAL")
-                        .HasColumnName("Rating");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -92,6 +88,62 @@ namespace FinancialAnalystsAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("ApiClients");
+                });
+
+            modelBuilder.Entity("FinancialAnalystsAPI.Models.CallOutcome", b =>
+                {
+                    b.Property<int>("RatingId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HorizonMonths")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("BenchmarkReturn")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ComputedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("DirectionalExcess")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("EndPrice")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("ExcessReturn")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("Hit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Return")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("StartPrice")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("Target")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("TargetError")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool?>("TargetHit")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RatingId", "HorizonMonths");
+
+                    b.HasIndex("HorizonMonths", "EndDate");
+
+                    b.ToTable("CallOutcomes");
                 });
 
             modelBuilder.Entity("FinancialAnalystsAPI.Models.Firm", b =>
@@ -318,6 +370,17 @@ namespace FinancialAnalystsAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Firm");
+                });
+
+            modelBuilder.Entity("FinancialAnalystsAPI.Models.CallOutcome", b =>
+                {
+                    b.HasOne("FinancialAnalystsAPI.Models.Rating", "Rating")
+                        .WithMany()
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rating");
                 });
 
             modelBuilder.Entity("FinancialAnalystsAPI.Models.PriceSnapshot", b =>
