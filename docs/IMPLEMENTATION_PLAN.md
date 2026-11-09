@@ -85,7 +85,7 @@ IngestionRun  Id, Kind, StartedAt, FinishedAt, Status, ItemsAdded, Error
 Notes:
 - **"Sectors covered" is derived, not stored.** It is the distinct `Stock.Sector` values across an analyst's ratings. Storing it would only duplicate data that can drift.
 - **`AnalystId` is nullable** because some rows only name a firm. Those rows still count toward firm leaderboards and stock consensus.
-- **Rating normalisation:** a static map turns firm vocabulary into a `Category` (Outperform/Overweight/Strong Buy → Buy; Market Perform/Neutral/Equal-Weight → Hold; …). Strings the map doesn't know are logged and stored as `Hold`, and the map gets unit tests.
+- **Rating normalisation:** a static map turns firm vocabulary into a `Category` (Outperform/Overweight/Strong Buy → Buy; Market Perform/Neutral/Equal-Weight → Hold; …). Strings the map doesn't know get a null `Category`, so consensus leaves them out rather than guessing, and the map gets unit tests.
 - **Use `double`, not `decimal`, for prices.** EF Core on SQLite cannot translate `Sum`/`Average`/`Min`/`Max` or `ORDER BY` over `decimal`, and Phases 2 and 3 depend on those aggregates.
 - Indexes: `Rating(StockId, Date)`, `Rating(AnalystId, Date)`, `Rating(Date)` for the feed, and `Stock(Sector)`.
 - Configure everything in `IEntityTypeConfiguration<T>` classes, applied with `ApplyConfigurationsFromAssembly`.

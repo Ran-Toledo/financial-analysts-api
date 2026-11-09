@@ -28,6 +28,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:AnalystsDb", _connectionString);
+        builder.UseSetting("DataProvider:Name", "Fake");     // no API key, no network
+        builder.UseSetting("Ingestion:Enabled", "false");    // tests trigger ingestion explicitly
     }
 
     protected override void ConfigureClient(HttpClient client)

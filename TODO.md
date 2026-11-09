@@ -3,16 +3,17 @@
 Goal: track real Wall Street analysts and score how accurate their calls turn out to be.
 
 ## Phase 1: Data foundation
-- [ ] Choose a data provider (Financial Modeling Prep or Finnhub; check current free tiers)
-- [ ] Add an `IAnalystDataProvider` abstraction and a first implementation
-- [ ] Store API keys with user-secrets locally and environment variables in deployment
-- [ ] Expand the data model:
-  - [ ] Analyst (name, firm, sectors covered)
-  - [ ] Firm
-  - [ ] Stock (ticker, name, sector)
-  - [ ] Rating (analyst, stock, date, action, rating, price target)
-  - [ ] PriceSnapshot (daily closing prices)
-- [ ] Add a scheduled ingestion job (`BackgroundService` or Hangfire) for ratings, price targets, and prices
+- [x] Choose a data provider (Financial Modeling Prep or Finnhub; check current free tiers): FMP, since Finnhub's targets and upgrades are premium-only
+  - [ ] Verify with a real FMP key which endpoints the free tier returns, and replace the hand-written test fixtures with saved responses
+- [x] Add an `IAnalystDataProvider` abstraction and a first implementation (FMP, plus an offline fake)
+- [x] Store API keys with user-secrets locally and environment variables in deployment
+- [x] Expand the data model:
+  - [x] Analyst (name, firm, sectors covered)
+  - [x] Firm
+  - [x] Stock (ticker, name, sector)
+  - [x] Rating (analyst, stock, date, action, rating, price target)
+  - [x] PriceSnapshot (daily closing prices)
+- [x] Add a scheduled ingestion job (`BackgroundService` or Hangfire) for ratings, price targets, and prices
 
 ## Phase 2: Useful API
 - [ ] Consensus per stock (buy/hold/sell split; average, high, and low targets; history)
