@@ -48,6 +48,52 @@ namespace FinancialAnalystsAPI.Migrations
                     b.ToTable("Analysts", (string)null);
                 });
 
+            modelBuilder.Entity("FinancialAnalystsAPI.Models.ApiClient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KeyPrefix")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ApiClients");
+                });
+
             modelBuilder.Entity("FinancialAnalystsAPI.Models.Firm", b =>
                 {
                     b.Property<int>("Id")
@@ -293,7 +339,7 @@ namespace FinancialAnalystsAPI.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("FinancialAnalystsAPI.Models.Firm", "Firm")
-                        .WithMany()
+                        .WithMany("Ratings")
                         .HasForeignKey("FirmId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -319,6 +365,8 @@ namespace FinancialAnalystsAPI.Migrations
             modelBuilder.Entity("FinancialAnalystsAPI.Models.Firm", b =>
                 {
                     b.Navigation("Analysts");
+
+                    b.Navigation("Ratings");
                 });
 
             modelBuilder.Entity("FinancialAnalystsAPI.Models.Stock", b =>

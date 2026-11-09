@@ -4,6 +4,9 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- XML docs feed Swagger; not every public member needs a comment. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <UserSecretsId>a5bfcbed-6a8e-4a12-bba9-b116832031c1</UserSecretsId>
   </PropertyGroup>
 

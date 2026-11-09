@@ -11,6 +11,7 @@ public class AnalystsDbContext(DbContextOptions<AnalystsDbContext> options) : Db
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<PriceSnapshot> PriceSnapshots => Set<PriceSnapshot>();
     public DbSet<IngestionRun> IngestionRuns => Set<IngestionRun>();
+    public DbSet<ApiClient> ApiClients => Set<ApiClient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

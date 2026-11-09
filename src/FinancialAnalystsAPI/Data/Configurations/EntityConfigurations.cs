@@ -57,7 +57,7 @@ internal sealed class RatingConfiguration : IEntityTypeConfiguration<Rating>
         b.Property(r => r.SourceKey).HasMaxLength(300);
 
         b.HasOne(r => r.Stock).WithMany(s => s.Ratings).HasForeignKey(r => r.StockId).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne(r => r.Firm).WithMany().HasForeignKey(r => r.FirmId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Firm).WithMany(f => f.Ratings).HasForeignKey(r => r.FirmId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(r => r.Analyst).WithMany(a => a.Ratings).HasForeignKey(r => r.AnalystId).OnDelete(DeleteBehavior.Restrict);
 
         b.HasIndex(r => new { r.Source, r.SourceKey }).IsUnique();
@@ -73,6 +73,19 @@ internal sealed class PriceSnapshotConfiguration : IEntityTypeConfiguration<Pric
     {
         b.HasKey(p => new { p.StockId, p.Date });
         b.HasOne(p => p.Stock).WithMany(s => s.Prices).HasForeignKey(p => p.StockId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ApiClientConfiguration : IEntityTypeConfiguration<ApiClient>
+{
+    public void Configure(EntityTypeBuilder<ApiClient> b)
+    {
+        b.Property(c => c.Name).HasMaxLength(100);
+        b.Property(c => c.KeyHash).HasMaxLength(64);
+        b.Property(c => c.KeyPrefix).HasMaxLength(12);
+        b.Property(c => c.Role).HasConversion<string>().HasMaxLength(20);
+        b.HasIndex(c => c.Name).IsUnique();
+        b.HasIndex(c => c.KeyHash).IsUnique();
     }
 }
 

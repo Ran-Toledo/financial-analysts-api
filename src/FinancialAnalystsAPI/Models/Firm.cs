@@ -10,4 +10,5 @@ public class Firm
     public string NormalizedName { get; set; } = string.Empty;
 
     public List<Analyst> Analysts { get; set; } = [];
+    public List<Rating> Ratings { get; set; } = [];
 }

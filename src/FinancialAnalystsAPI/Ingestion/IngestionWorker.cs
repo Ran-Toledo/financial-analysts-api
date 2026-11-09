@@ -4,7 +4,7 @@ namespace FinancialAnalystsAPI.Ingestion;
 
 /// <summary>Runs <see cref="IngestionService"/> once a day at <c>Ingestion:RunAtUtc</c>.</summary>
 public sealed class IngestionWorker(
-    IServiceScopeFactory scopes,
+    IngestionCoordinator coordinator,
     IOptions<IngestionOptions> options,
     TimeProvider time,
     ILogger<IngestionWorker> logger) : BackgroundService
@@ -40,8 +40,7 @@ public sealed class IngestionWorker(
     {
         try
         {
-            await using var scope = scopes.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<IngestionService>().RunAsync(backfill: false, ct);
+            await coordinator.RunAsync(backfill: false, ct); // waits if an admin-triggered run is in progress
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {

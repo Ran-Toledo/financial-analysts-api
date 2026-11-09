@@ -21,12 +21,12 @@ Goal: track real Wall Street analysts and score how accurate their calls turn ou
 - [x] Add a scheduled ingestion job (`BackgroundService` or Hangfire) for ratings, price targets, and prices
 
 ## Phase 2: Useful API
-- [ ] Consensus per stock (buy/hold/sell split; average, high, and low targets; history)
-- [ ] Activity feed of upgrades and downgrades, filterable by ticker and sector
-- [ ] Pagination, filtering, and sorting on list endpoints
-- [ ] Input validation
-- [ ] Response caching and rate limiting
-- [ ] API-key authentication
+- [x] Consensus per stock (buy/hold/sell split; average, high, and low targets; history). Target stats stay null until a provider supplies targets
+- [x] Activity feed of upgrades and downgrades, filterable by ticker and sector
+- [x] Pagination, filtering, and sorting on list endpoints
+- [x] Input validation
+- [x] Response caching and rate limiting
+- [x] API-key authentication
 
 ## Phase 3: Scoring
 - [ ] Accuracy engine: compare price targets with the actual price at 3, 6, and 12 months
