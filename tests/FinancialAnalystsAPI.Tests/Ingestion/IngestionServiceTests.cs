@@ -130,6 +130,23 @@ public sealed class IngestionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PricesSavedBeforeARatingsFailure_StillCountInTheRun()
+    {
+        var provider = new ScriptedProvider
+        {
+            Prices = (_, _, _) => [new ProviderPrice(Today, 10, 10)],
+            Ratings = (t, _) => t == "BAD" ? throw new HttpRequestException("ratings down") : [],
+        };
+
+        var run = await RunAsync(provider, ["BAD"]);
+
+        await using var db = _testDb.CreateContext();
+        Assert.Equal(2, await db.PriceSnapshots.CountAsync()); // BAD and SPY
+        Assert.Equal(2, run.PricesAdded);
+        Assert.Equal(1, run.StocksProcessed);                   // only SPY completed
+    }
+
+    [Fact]
     public async Task QuotaExceeded_StopsTheRun()
     {
         var calls = 0;
@@ -143,6 +160,23 @@ public sealed class IngestionServiceTests : IDisposable
         Assert.Equal(IngestionStatus.PartiallySucceeded, run.Status);
         Assert.Equal(1, run.StocksProcessed);
         Assert.Equal(2, calls); // C and SPY never attempted
+    }
+
+    [Fact]
+    public async Task RejectedCredentials_StopTheRunAtTheFirstTicker()
+    {
+        var calls = 0;
+        var provider = new ScriptedProvider
+        {
+            Profile = _ => { calls++; throw new ProviderAuthenticationException("FMP rejected the API key (401)"); },
+        };
+
+        var run = await RunAsync(provider, ["A", "B", "C"]);
+
+        Assert.Equal(IngestionStatus.Failed, run.Status);
+        Assert.Equal(1, calls);
+        Assert.StartsWith("A: FMP rejected the API key", run.Error);
+        Assert.DoesNotContain("B:", run.Error);
     }
 
     [Fact]

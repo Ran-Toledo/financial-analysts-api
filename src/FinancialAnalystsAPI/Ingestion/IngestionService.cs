@@ -57,16 +57,16 @@ public sealed class IngestionService(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var result = await IngestTickerAsync(ticker, ticker == benchmark, backfill, ct);
+                    var result = await IngestTickerAsync(ticker, ticker == benchmark, backfill, run, ct);
                     run.StocksProcessed++;
-                    run.PricesAdded += result.PricesAdded;
                     run.RatingsAdded += result.RatingsAdded;
                     run.RatingsUpdated += result.RatingsUpdated;
                     logger.LogInformation("{Ticker}: +{Prices} prices, +{Added} ratings, {Updated} ratings updated",
                         ticker, result.PricesAdded, result.RatingsAdded, result.RatingsUpdated);
                 }
-                catch (ProviderQuotaExceededException ex)
+                catch (Exception ex) when (ex is ProviderQuotaExceededException or ProviderAuthenticationException)
                 {
+                    // Run-wide failures: every remaining ticker would fail the same way.
                     failures.Add($"{ticker}: {ex.Message} Remaining tickers skipped.");
                     logger.LogWarning("Stopping run {RunId} at {Ticker}: {Message}", run.Id, ticker, ex.Message);
                     db.ChangeTracker.Clear();
@@ -105,7 +105,12 @@ public sealed class IngestionService(
         return run;
     }
 
-    private async Task<TickerResult> IngestTickerAsync(string ticker, bool isBenchmark, bool backfill, CancellationToken ct)
+    /// <remarks>
+    /// Profile and prices are saved before ratings are fetched, so they persist (and count in <paramref name="run"/>)
+    /// even if the ratings step fails.
+    /// </remarks>
+    private async Task<TickerResult> IngestTickerAsync(
+        string ticker, bool isBenchmark, bool backfill, IngestionRun run, CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(UtcNow());
         var historyStart = today.AddYears(-options.Value.BackfillYears);
@@ -139,6 +144,8 @@ public sealed class IngestionService(
         await db.SaveChangesAsync(ct);
 
         var pricesAdded = await IngestPricesAsync(stock, backfill, historyStart, today, ct);
+        run.PricesAdded += pricesAdded;
+
         var (ratingsAdded, ratingsUpdated) = await IngestRatingsAsync(stock, backfill, historyStart, today, ct);
         return new TickerResult(pricesAdded, ratingsAdded, ratingsUpdated);
     }

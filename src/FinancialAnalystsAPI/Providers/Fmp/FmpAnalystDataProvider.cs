@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
 using FinancialAnalystsAPI.Ingestion;
 using Microsoft.Extensions.Options;
@@ -13,11 +14,19 @@ namespace FinancialAnalystsAPI.Providers.Fmp;
 /// <remarks>
 /// The API key travels as the <c>apikey</c> query parameter, so HttpClientFactory request logging is removed
 /// for this client at registration (it would log full URLs) and this class never logs a URL.
+/// <para>
+/// If the plan doesn't include <c>price-target-news</c> (the free tier doesn't), ratings degrade to firm-level
+/// grades with no analyst names or targets, and the endpoint is skipped for a day.
+/// </para>
 /// </remarks>
-public sealed class FmpAnalystDataProvider(HttpClient http, IOptions<FmpOptions> options, ILogger<FmpAnalystDataProvider> logger)
-    : IAnalystDataProvider
+public sealed class FmpAnalystDataProvider(
+    HttpClient http,
+    IOptions<FmpOptions> options,
+    FmpPlanRestrictions restrictions,
+    ILogger<FmpAnalystDataProvider> logger) : IAnalystDataProvider
 {
     public const string ProviderName = "fmp";
+    internal const string PriceTargetPath = "price-target-news";
 
     public string Name => ProviderName;
 
@@ -56,7 +65,23 @@ public sealed class FmpAnalystDataProvider(HttpClient http, IOptions<FmpOptions>
             .Where(g => TryDate(g.Date, out var d) && d >= since && !string.IsNullOrWhiteSpace(g.GradingCompany))
             .ToList();
 
-        var targets = await GetPriceTargetsAsync(ticker, since, ct);
+        List<FmpPriceTargetNews> targets = [];
+        if (!restrictions.IsRestricted(PriceTargetPath))
+        {
+            try
+            {
+                targets = await GetPriceTargetsAsync(ticker, since, ct);
+            }
+            catch (ProviderRestrictedException ex) when (!ex.SymbolOnly)
+            {
+                if (restrictions.MarkRestricted(PriceTargetPath))
+                {
+                    logger.LogWarning(
+                        "Your FMP plan doesn't include {Endpoint}, so ratings are firm-level grades only, with no analyst " +
+                        "names or price targets. Skipping it for 24 hours. FMP said: {Message}", PriceTargetPath, ex.Message);
+                }
+            }
+        }
 
         return Merge(ticker, grades, targets);
     }
@@ -69,7 +94,7 @@ public sealed class FmpAnalystDataProvider(HttpClient http, IOptions<FmpOptions>
         // Newest first; stop once a page reaches back past `since`, or at the page cap.
         for (var page = 0; page < o.MaxPriceTargetPages; page++)
         {
-            var items = await GetAsync<FmpPriceTargetNews>("price-target-news", ct,
+            var items = await GetAsync<FmpPriceTargetNews>(PriceTargetPath, ct,
                 ("symbol", ticker), ("page", page.ToString(CultureInfo.InvariantCulture)),
                 ("limit", o.PriceTargetPageSize.ToString(CultureInfo.InvariantCulture)));
             if (items.Count == 0) break;
@@ -136,19 +161,69 @@ public sealed class FmpAnalystDataProvider(HttpClient http, IOptions<FmpOptions>
             .Select(p => $"{Uri.EscapeDataString(p.Item1)}={Uri.EscapeDataString(p.Item2)}"));
 
         using var response = await http.GetAsync($"{path}?{qs}", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        // Messages never include the request URI (it carries the key), and any echo of the key is masked.
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            throw new ProviderAuthenticationException(
+                $"FMP rejected the API key ({(int)response.StatusCode}): {ErrorText(body, apiKey)} " +
+                "Check Fmp:ApiKey: it should be the bare key, with no quotes or angle brackets.");
+        }
+
+        if (response.StatusCode == HttpStatusCode.PaymentRequired)
+        {
+            // "Restricted Endpoint" = not on this plan at all; "Premium Query Parameter" = not for this symbol.
+            var text = ErrorText(body, apiKey);
+            var symbolOnly = text.Contains("Premium Query Parameter", StringComparison.OrdinalIgnoreCase);
+            throw new ProviderRestrictedException(
+                symbolOnly
+                    ? $"Your FMP plan doesn't cover this symbol on '{path}': {text}"
+                    : $"Your FMP plan doesn't include '{path}': {text}",
+                symbolOnly);
+        }
+
         if (!response.IsSuccessStatusCode)
         {
-            // Never include the request URI: it carries the API key.
-            throw new HttpRequestException($"FMP '{path}' returned {(int)response.StatusCode} {response.ReasonPhrase}.",
+            throw new HttpRequestException(
+                $"FMP '{path}' returned {(int)response.StatusCode} {response.ReasonPhrase}: {ErrorText(body, apiKey)}",
                 null, response.StatusCode);
         }
 
         // FMP returns an object instead of an array for errors such as "Limit Reach" or premium-only endpoints.
-        var body = await response.Content.ReadAsStringAsync(ct);
         if (body.TrimStart().StartsWith('{'))
-            throw new HttpRequestException($"FMP '{path}' returned an error object: {Truncate(body, 300)}");
+            throw new HttpRequestException($"FMP '{path}' returned an error object: {ErrorText(body, apiKey)}");
 
         return JsonSerializer.Deserialize<List<T>>(body, JsonOptions) ?? [];
+    }
+
+    /// <summary>FMP's "Error Message" / "message" field when present, else the start of the body; key masked.</summary>
+    internal static string ErrorText(string body, string apiKey)
+    {
+        var text = body.Trim();
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var name in (string[])["Error Message", "error", "message"])
+                {
+                    if (doc.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String)
+                    {
+                        text = value.GetString()!;
+                        break;
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Not JSON: use the raw text.
+        }
+
+        if (text.Length == 0) text = "(empty response)";
+        if (apiKey.Length > 0) text = text.Replace(apiKey, "***", StringComparison.Ordinal);
+        return Truncate(text, 300);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

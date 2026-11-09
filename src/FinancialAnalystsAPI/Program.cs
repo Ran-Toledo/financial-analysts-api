@@ -3,6 +3,7 @@ using FinancialAnalystsAPI.Ingestion;
 using FinancialAnalystsAPI.Models;
 using FinancialAnalystsAPI.Providers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 // `dotnet run -- ingest [--backfill]` runs one ingestion and exits instead of starting the web server.
 var ingestCommand = args.FirstOrDefault() == "ingest";
@@ -35,6 +36,17 @@ var app = builder.Build();
 
 if (ingestCommand)
 {
+    // The host never starts in this mode, so run the ValidateOnStart checks here.
+    try
+    {
+        app.Services.GetService<IStartupValidator>()?.Validate();
+    }
+    catch (OptionsValidationException ex)
+    {
+        Console.Error.WriteLine($"Configuration error: {string.Join(" ", ex.Failures)}");
+        return 1;
+    }
+
     await using var scope = app.Services.CreateAsyncScope();
     var run = await scope.ServiceProvider.GetRequiredService<IngestionService>().RunAsync(backfill, CancellationToken.None);
 

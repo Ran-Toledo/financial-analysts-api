@@ -39,3 +39,18 @@ public sealed record ProviderPrice(DateOnly Date, double Close, double? AdjClose
 
 /// <summary>Thrown when the provider's daily call budget is spent; ingestion stops the run cleanly.</summary>
 public sealed class ProviderQuotaExceededException(string message) : Exception(message);
+
+/// <summary>
+/// Thrown when the provider rejects the credentials. Every later call would fail the same way,
+/// so ingestion stops the run instead of spending a call per ticker.
+/// </summary>
+public sealed class ProviderAuthenticationException(string message) : Exception(message);
+
+/// <summary>
+/// Thrown when the subscription doesn't cover a request: either the whole endpoint
+/// (<paramref name="symbolOnly"/> false) or just this symbol on an otherwise available endpoint.
+/// </summary>
+public sealed class ProviderRestrictedException(string message, bool symbolOnly) : Exception(message)
+{
+    public bool SymbolOnly { get; } = symbolOnly;
+}

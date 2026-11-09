@@ -28,12 +28,18 @@ public static class ProviderServiceCollectionExtensions
                 "Fmp:ApiKey is required when DataProvider:Name is \"Fmp\". Locally: dotnet user-secrets set \"Fmp:ApiKey\" \"<key>\" " +
                 "--project src/FinancialAnalystsAPI. In deployment: set the Fmp__ApiKey environment variable. " +
                 "Or set DataProvider:Name to \"Fake\" for offline synthetic data.")
+            .Validate<IOptions<DataProviderOptions>>(
+                (fmp, provider) => provider.Value.Name != DataProviderOptions.Fmp || !LooksMalformed(fmp.ApiKey),
+                "Fmp:ApiKey contains spaces, quotes, angle brackets or braces, so it was probably stored with part of a " +
+                "placeholder such as \"<key>\". Set it again as the bare key: " +
+                "dotnet user-secrets set \"Fmp:ApiKey\" YOURKEY --project src/FinancialAnalystsAPI")
             .ValidateOnStart();
 
         services.AddSingleton(sp => new DailyCallBudget(
             sp.GetRequiredService<IOptions<FmpOptions>>().Value.DailyCallBudget,
             sp.GetRequiredService<TimeProvider>()));
         services.AddTransient<DailyCallBudgetHandler>();
+        services.AddSingleton<FmpPlanRestrictions>();
 
         var fmpClient = services.AddHttpClient<FmpAnalystDataProvider>((sp, client) =>
             {
@@ -56,4 +62,8 @@ public static class ProviderServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>API keys are opaque tokens; these characters only appear when a placeholder or quotes were pasted in.</summary>
+    internal static bool LooksMalformed(string? apiKey) =>
+        apiKey is not null && apiKey.Any(c => char.IsWhiteSpace(c) || c is '"' or '\'' or '<' or '>' or '{' or '}');
 }

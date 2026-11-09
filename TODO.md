@@ -4,7 +4,12 @@ Goal: track real Wall Street analysts and score how accurate their calls turn ou
 
 ## Phase 1: Data foundation
 - [x] Choose a data provider (Financial Modeling Prep or Finnhub; check current free tiers): FMP, since Finnhub's targets and upgrades are premium-only
-  - [ ] Verify with a real FMP key which endpoints the free tier returns, and replace the hand-written test fixtures with saved responses
+  - [x] Verify with a real FMP key which endpoints the free tier returns: profiles, prices (some symbols) and firm-level `grades` yes; `price-target-news` (analyst names, targets) no
+  - [ ] Decide how to get analyst names and price targets: a paid FMP plan, firm-level scoring only, or another provider
+    - `price-target-news` is no longer in FMP's docs. Its replacement is the TipRanks-sourced dataset (`tipranks-search`, `tipranks-pit-symbol`, …), which has analyst IDs, targets, actions and 3 years of history
+    - Next step: try `tipranks-search?symbol=AAPL` once with the free key (via "Explore Endpoint" in FMP's docs). If it returns rows, switch the FMP provider to it
+    - Free plan only covers ~87 symbols; CRM, PG and HD from the default list aren't among them
+  - [ ] Replace the hand-written success-response test fixtures with saved real responses
 - [x] Add an `IAnalystDataProvider` abstraction and a first implementation (FMP, plus an offline fake)
 - [x] Store API keys with user-secrets locally and environment variables in deployment
 - [x] Expand the data model:

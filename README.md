@@ -42,7 +42,18 @@ dotnet user-secrets set "DataProvider:Name" "Fmp" --project src/FinancialAnalyst
 
 In deployment, set the `Fmp__ApiKey` environment variable instead. The app refuses to start when `Fmp` is selected and no key is set.
 
-`Fmp:DailyCallBudget` (default 240) caps calls per UTC day, below the free tier's 250. A daily run uses about 4–5 calls per ticker.
+`Fmp:DailyCallBudget` (default 240) caps calls per UTC day, below the free tier's 250. A daily run uses about 3–5 calls per ticker.
+
+**What FMP's free tier returns** (checked November 2026):
+
+| Data | Endpoint | Free tier |
+|---|---|---|
+| Profiles | `profile` | Yes |
+| Daily prices | `historical-price-eod/full`, `dividend-adjusted` | Yes, but only for some symbols (not CRM, PG or HD from the default list) |
+| Firm rating changes | `grades` | Yes: about 3 years, roughly 90 firms |
+| Analyst names and price targets | `price-target-news` | **No** (402 "Restricted Endpoint") |
+
+When `price-target-news` is refused, ingestion keeps going with firm-level grades only and skips that endpoint for 24 hours. An invalid key (401/403) stops the run at the first ticker.
 
 ## Ingestion
 

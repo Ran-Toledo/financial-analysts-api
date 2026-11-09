@@ -14,10 +14,52 @@ public class FmpAnalystDataProviderTests
     private const string ApiKey = "test-key-123";
     private readonly StubHttpHandler _http = new();
 
+    private readonly FmpPlanRestrictions _restrictions = new(TimeProvider.System);
+
     private FmpAnalystDataProvider CreateProvider(int pageSize = 100, int maxPages = 10) =>
         new(new HttpClient(_http) { BaseAddress = new Uri("https://fmp.test/stable/") },
             Options.Create(new FmpOptions { ApiKey = ApiKey, PriceTargetPageSize = pageSize, MaxPriceTargetPages = maxPages }),
+            _restrictions,
             NullLogger<FmpAnalystDataProvider>.Instance);
+
+    // Real FMP 402 bodies, as returned for a free-tier key.
+    private const string RestrictedEndpoint =
+        """{ "Error Message": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscription page to upgrade your plan at https://financialmodelingprep.com/" }""";
+    private const string RestrictedSymbol =
+        """{ "Error Message": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current subscription please visit our subscription page to upgrade your plan at https://financialmodelingprep.com/" }""";
+
+    private static HttpResponseMessage PaymentRequired(string body) =>
+        new(HttpStatusCode.PaymentRequired) { Content = new StringContent(body) };
+
+    [Fact]
+    public async Task RestrictedPriceTargets_FallBackToGradesOnly_AndAreSkippedOnLaterCalls()
+    {
+        _http.Json("stable/grades", """
+            [ { "date": "2026-10-02", "gradingCompany": "Morgan Stanley", "previousGrade": "Equal-Weight", "newGrade": "Overweight", "action": "upgrade" } ]
+            """);
+        _http.On("stable/price-target-news", _ => PaymentRequired(RestrictedEndpoint));
+        var provider = CreateProvider();
+
+        var first = await provider.GetRatingsAsync("AAPL", new DateOnly(2026, 1, 1), CancellationToken.None);
+        var second = await provider.GetRatingsAsync("MSFT", new DateOnly(2026, 1, 1), CancellationToken.None);
+
+        var rating = Assert.Single(first);
+        Assert.Equal(("Morgan Stanley", null, "Overweight", (double?)null), (rating.Firm, rating.Analyst, rating.RatingTo, rating.PriceTarget));
+        Assert.Single(second);
+        Assert.Single(_http.Requests, u => u.AbsolutePath.EndsWith("price-target-news")); // not retried for MSFT
+    }
+
+    [Fact]
+    public async Task RestrictedSymbol_ThrowsSymbolOnlyRestriction()
+    {
+        _http.On("stable/historical-price-eod/full", _ => PaymentRequired(RestrictedSymbol));
+
+        var ex = await Assert.ThrowsAsync<ProviderRestrictedException>(() =>
+            CreateProvider().GetDailyPricesAsync("CRM", new DateOnly(2026, 1, 1), new DateOnly(2026, 2, 1), CancellationToken.None));
+
+        Assert.True(ex.SymbolOnly);
+        Assert.StartsWith("Your FMP plan doesn't cover this symbol on 'historical-price-eod/full'", ex.Message);
+    }
 
     [Fact]
     public async Task GetRatings_MergesGradeAndTargetFromSameFirmAndDay()
@@ -126,10 +168,30 @@ public class FmpAnalystDataProviderTests
         Assert.Contains($"apikey={ApiKey}", query);
     }
 
-    [Fact]
-    public async Task ErrorResponses_DoNotLeakTheApiKey()
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task RejectedKey_ThrowsAuthenticationError_WithFmpMessage_AndMaskedKey(HttpStatusCode status)
     {
-        _http.On("stable/profile", _ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        _http.On("stable/profile", _ => new HttpResponseMessage(status)
+        {
+            Content = new StringContent($$"""{ "Error Message": "Invalid API KEY {{ApiKey}}. Feel free to create a Free API Key." }"""),
+        });
+
+        var ex = await Assert.ThrowsAsync<ProviderAuthenticationException>(() =>
+            CreateProvider().GetStockProfileAsync("AAPL", CancellationToken.None));
+
+        Assert.Contains("Invalid API KEY ***", ex.Message);
+        Assert.DoesNotContain(ApiKey, ex.Message);
+    }
+
+    [Fact]
+    public async Task OtherErrors_IncludeFmpMessage_WithoutTheKey()
+    {
+        _http.On("stable/profile", _ => new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            Content = new StringContent("""{ "Error Message": "Limit Reach. Please upgrade your plan." }"""),
+        });
         _http.Json("stable/grades", """{ "Error Message": "Premium endpoint" }""");
 
         var status = await Assert.ThrowsAsync<HttpRequestException>(() =>
@@ -137,9 +199,17 @@ public class FmpAnalystDataProviderTests
         var errorObject = await Assert.ThrowsAsync<HttpRequestException>(() =>
             CreateProvider().GetRatingsAsync("AAPL", new DateOnly(2026, 1, 1), CancellationToken.None));
 
-        Assert.Equal(HttpStatusCode.Unauthorized, status.StatusCode);
-        Assert.DoesNotContain(ApiKey, status.Message);
+        Assert.Equal(HttpStatusCode.TooManyRequests, status.StatusCode);
+        Assert.Contains("Limit Reach", status.Message);
         Assert.Contains("Premium endpoint", errorObject.Message);
-        Assert.DoesNotContain(ApiKey, errorObject.Message);
+        Assert.DoesNotContain(ApiKey, status.Message + errorObject.Message);
     }
+
+    [Theory]
+    [InlineData("""{ "Error Message": "Bad key" }""", "Bad key")]
+    [InlineData("""{ "message": "Not found" }""", "Not found")]
+    [InlineData("Service unavailable", "Service unavailable")]
+    [InlineData("", "(empty response)")]
+    public void ErrorText_PrefersFmpMessageField(string body, string expected) =>
+        Assert.Equal(expected, FmpAnalystDataProvider.ErrorText(body, ApiKey));
 }
