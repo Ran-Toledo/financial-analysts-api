@@ -8,6 +8,7 @@ An ASP.NET Core (.NET 9) Web API that tracks Wall Street analysts' ratings and p
 |---|---|
 | `src/FinancialAnalystsAPI/` | The Web API project |
 | `tests/FinancialAnalystsAPI.Tests/` | xUnit unit and integration tests (`WebApplicationFactory`) |
+| `dashboard/` | React + Vite + TypeScript dashboard (see [dashboard/README.md](dashboard/README.md)) |
 | `docs/` | Design notes and the implementation plan |
 
 ## Run
@@ -21,6 +22,16 @@ dotnet run --project src/FinancialAnalystsAPI                     # start the AP
 ```
 
 Swagger UI is available at `/swagger` in Development. The connection string is `ConnectionStrings:AnalystsDb` in `src/FinancialAnalystsAPI/appsettings.json`; with the commands above, `analysts.db` lives in `src/FinancialAnalystsAPI/`.
+
+### Dashboard
+
+```bash
+cd dashboard && npm install
+npm run dev      # http://localhost:5173, forwards /api to the API on :5076
+npm run build    # writes into src/FinancialAnalystsAPI/wwwroot; the API then serves it at /
+```
+
+Build the dashboard before `dotnet publish` so `wwwroot` ships with the API.
 
 > Upgrading an existing `analysts.db`: the `DataFoundation` migration deletes the rows from the old hand-entered analysts table, because analysts now come from ingestion.
 

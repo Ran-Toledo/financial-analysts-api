@@ -200,7 +200,7 @@ These should be agreed before writing code, because they determine every number 
 ## Phase 4: Dashboard
 
 ### 4.1 Stack
-**Recommendation: React + Vite + TypeScript.** The charting needs (price series with markers, sparklines, scatter plots) are much better served there than in Blazor.
+**Decided: React + Vite + TypeScript.** The charting needs (price series with markers, sparklines, scatter plots) are much better served there than in Blazor.
 
 - Routing: React Router. Server state: TanStack Query.
 - Charts: **TradingView Lightweight Charts** for the price chart with target and rating markers (Apache-2.0, attribution required). **Recharts** for sparklines, scatter plots and the gauge.
@@ -245,4 +245,4 @@ PRs 5–8 can run in parallel with 3–4 because the fake provider and seeded te
 1. **Provider plan:** whether FMP's free key returns analyst-level data. Settle this with the spike in 1.1 before PR 3.
 2. **Anonymous reads:** recommended yes, with a stricter rate limit (2.6).
 3. **Scoring definitions:** the Hold band (5%), SPY as the benchmark, the shrinkage constant, and the minimum number of calls (3.1, 3.3).
-4. **Dashboard stack:** React + Vite (recommended) or Blazor.
+4. ~~**Dashboard stack:**~~ Decided: React + Vite + TypeScript, built with `npm run build` into the API's `wwwroot` (4.1).

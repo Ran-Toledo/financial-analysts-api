@@ -81,6 +81,10 @@ builder.Services.AddSwaggerGen(o =>
     {
         [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = ApiKeys.Scheme } }] = [],
     });
+    // Accurate nullability and required fields, so the dashboard's generated types match the JSON.
+    o.SupportNonNullableReferenceTypes();
+    o.UseAllOfToExtendReferenceSchemas();
+    o.SchemaFilter<RequireNonNullablePropertiesFilter>();
     var xml = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
     if (File.Exists(xml)) o.IncludeXmlComments(xml);
 });
@@ -99,12 +103,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();  // "/" -> index.html
+app.UseStaticFiles();   // the dashboard build (`npm run build` in dashboard/ writes to wwwroot)
 app.UseAuthentication();
 app.UseMiddleware<RejectInvalidKeysMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();   // after authentication, so limits are per key; before the cache, so cached hits still count
 app.UseOutputCache();
 app.MapControllers();
+// Client-side routes (/analysts/5, ...) load the dashboard; unknown /api paths still return 404.
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!api(/|$)).*$)}", "index.html");
 
 app.Run();
 return 0;

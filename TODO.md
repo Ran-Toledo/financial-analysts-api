@@ -33,8 +33,8 @@ Goal: track real Wall Street analysts and score how accurate their calls turn ou
 - [x] Per-analyst (and per-firm) hit rate and average return; replace the manual `Rating` with the computed score
 - [x] Leaderboards: overall, by sector, and by firm (firm-level on FMP's free tier)
 
-## Phase 4: Dashboard (React + Vite or Blazor)
-- [ ] Leaderboard page: sortable analyst table with scores and trend sparklines
+## Phase 4: Dashboard (React + Vite + TypeScript)
+- [x] Leaderboard page: sortable analyst table with scores and trend sparklines
 - [ ] Analyst profile: past calls plotted against actual stock performance
 - [ ] Stock page: price chart with targets and rating changes overlaid, plus a consensus gauge
 - [ ] Live feed page of rating changes
