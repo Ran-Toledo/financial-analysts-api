@@ -8,7 +8,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { '/api': 'http://localhost:5076' },
+    // API_URL lets the Playwright smoke tests point the proxy at a fake-data API.
+    proxy: { '/api': process.env.API_URL ?? 'http://localhost:5076' },
   },
   build: {
     outDir: '../src/FinancialAnalystsAPI/wwwroot',

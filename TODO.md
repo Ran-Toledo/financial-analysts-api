@@ -35,9 +35,10 @@ Goal: track real Wall Street analysts and score how accurate their calls turn ou
 
 ## Phase 4: Dashboard (React + Vite + TypeScript)
 - [x] Leaderboard page: sortable analyst table with scores and trend sparklines
-- [ ] Analyst profile: past calls plotted against actual stock performance
-- [ ] Stock page: price chart with targets and rating changes overlaid, plus a consensus gauge
-- [ ] Live feed page of rating changes
+- [x] Analyst profile: past calls plotted against actual stock performance (also for firms)
+- [x] Stock page: price chart with targets and rating changes overlaid, plus a consensus gauge
+- [x] Live feed page of rating changes
+- [x] Stocks list, Vitest unit tests and a Playwright smoke test against the fake-data API
 
 ## Phase 5: Alerts and deployment
 - [ ] Watchlists

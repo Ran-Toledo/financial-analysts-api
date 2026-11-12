@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { Schemas } from '../api/client'
 import { LEADERBOARD_PAGE_SIZE, useFirmOptions, useLeaderboard, useSectors } from '../api/queries'
+import { Pager } from '../components/Controls'
 import { Sparkline } from '../components/Sparkline'
 import { EmptyState, ErrorState } from '../components/States'
 import { formatCount, formatPercent, formatScore, formatSignedPercent } from '../lib/format'
@@ -224,8 +225,14 @@ function Results({
               <tr key={row.id}>
                 <td className="num col-rank">{row.rank}</td>
                 <td className="col-name">
-                  <span className="name">{row.name}</span>
-                  {row.firmName && <span className="sub">{row.firmName}</span>}
+                  <Link className="name" to={`/${state.subject}/${row.id}${state.horizon === 12 ? '' : `?horizon=${state.horizon}`}`}>
+                    {row.name}
+                  </Link>
+                  {row.firmName && (
+                    <Link className="sub" to={`/firms/${row.firmId}`}>
+                      {row.firmName}
+                    </Link>
+                  )}
                 </td>
                 <td className="col-score">
                   <ScoreMeter score={row.stats.score} />
@@ -242,29 +249,7 @@ function Results({
         </table>
       </div>
 
-      {board.totalPages > 1 && (
-        <nav className="pager" aria-label="Pages">
-          <button
-            type="button"
-            className="button"
-            disabled={state.page <= 1}
-            onClick={() => update({ ...state, page: state.page - 1 })}
-          >
-            Previous
-          </button>
-          <span>
-            Page {board.page} of {board.totalPages}
-          </span>
-          <button
-            type="button"
-            className="button"
-            disabled={state.page >= board.totalPages}
-            onClick={() => update({ ...state, page: state.page + 1 })}
-          >
-            Next
-          </button>
-        </nav>
-      )}
+      <Pager page={board.page} totalPages={board.totalPages} onPage={(page) => update({ ...state, page })} />
     </>
   )
 }

@@ -7,6 +7,7 @@ import './index.css'
 import { ApiError } from './lib/errors'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage'
+import { FeedPage, ProfileRoute, StockRoute, StocksPage } from './pages/routes'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,11 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <LeaderboardPage /> },
+      { path: 'firms/:id', element: <ProfileRoute subject="firms" /> },
+      { path: 'analysts/:id', element: <ProfileRoute subject="analysts" /> },
+      { path: 'stocks', element: <StocksPage /> },
+      { path: 'stocks/:ticker', element: <StockRoute /> },
+      { path: 'feed', element: <FeedPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

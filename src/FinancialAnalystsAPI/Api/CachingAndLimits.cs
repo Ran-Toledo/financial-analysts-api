@@ -44,7 +44,10 @@ public static class ApiLimitsServiceCollectionExtensions
             .Configure<IOptions<ApiLimitsOptions>>((cache, limits) =>
                 cache.AddPolicy(CachePolicies.MarketData, policy => policy
                     .Expire(TimeSpan.FromMinutes(limits.Value.CacheMinutes))
-                    .Tag(CachePolicies.MarketDataTag)));
+                    .Tag(CachePolicies.MarketDataTag)
+                    // With locking, concurrent requests for one URL wait on the first; if that client disconnects,
+                    // its cancellation fails all of them with a 500. Reads are cheap, so let each run on its own.
+                    .SetLocking(false)));
 
         services.AddRateLimiter(options =>
         {
